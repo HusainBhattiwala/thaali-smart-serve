@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface LoginFormProps {
   onSuccess?: (isAdmin: boolean) => void;
@@ -30,39 +31,53 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
-      // In a real app, this would be an API call
-      // For demo purposes, we're using hardcoded credentials
-      setTimeout(() => {
-        // Admin credentials (for demo)
-        if (itsId === "12345678" && password === "admin") {
-          localStorage.setItem("user", JSON.stringify({ 
-            itsId, 
-            name: "Admin User", 
-            role: "admin", 
-            thaaliType: "Medium"
-          }));
-          toast.success("Admin login successful");
-          navigate("/admin");
-          if (onSuccess) onSuccess(true);
-        } 
-        // Regular user credentials (for demo)
-        else if (itsId === "87654321" && password === "user") {
-          localStorage.setItem("user", JSON.stringify({ 
-            itsId, 
-            name: "Demo User", 
-            role: "user", 
-            thaaliType: "Small"
-          }));
-          toast.success("Login successful");
-          navigate("/dashboard");
-          if (onSuccess) onSuccess(false);
-        } else {
-          toast.error("Invalid ITS ID or password");
-        }
+      // Supabase authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: `${itsId}@mythaali.com`, // Using ITS ID as email
+        password: password
+      });
+
+      if (error) {
+        toast.error(error.message);
         setIsLoading(false);
-      }, 1000);
+        return;
+      }
+
+      // Fetch user role from profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('its_id', itsId)
+        .single();
+
+      if (profileError) {
+        toast.error("Could not fetch user profile");
+        setIsLoading(false);
+        return;
+      }
+
+      const isAdmin = profileData?.role === 'admin';
+
+      // Store user info in localStorage
+      localStorage.setItem("user", JSON.stringify({ 
+        itsId, 
+        name: data.user?.user_metadata?.name || "User", 
+        role: profileData?.role || "user", 
+        thaaliType: data.user?.user_metadata?.thaaliType || "Medium"
+      }));
+
+      if (isAdmin) {
+        toast.success("Admin login successful");
+        navigate("/admin");
+        if (onSuccess) onSuccess(true);
+      } else {
+        toast.success("Login successful");
+        navigate("/dashboard");
+        if (onSuccess) onSuccess(false);
+      }
     } catch (error) {
       toast.error("Login failed");
+    } finally {
       setIsLoading(false);
     }
   };
