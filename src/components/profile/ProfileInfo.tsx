@@ -1,5 +1,5 @@
 
-import { User } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
   Card, 
@@ -7,6 +7,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { UserIcon } from "lucide-react";
 
 interface ProfileInfoProps {
   user: {
@@ -24,9 +25,11 @@ const ProfileInfo = ({ user }: ProfileInfoProps) => {
       </CardHeader>
       <CardContent className="pt-4">
         <div className="flex items-center justify-center mb-4">
-          <div className="h-20 w-20 rounded-full bg-thaali-green/20 flex items-center justify-center">
-            <User className="h-10 w-10 text-thaali-green" />
-          </div>
+          <Avatar className="h-20 w-20 bg-thaali-green/20">
+            <AvatarFallback>
+              <UserIcon className="h-10 w-10 text-thaali-green" />
+            </AvatarFallback>
+          </Avatar>
         </div>
         
         <div className="space-y-3">
