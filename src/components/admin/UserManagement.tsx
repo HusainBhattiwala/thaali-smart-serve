@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -37,115 +36,160 @@ import {
 } from "@/components/ui/select";
 import { PlusCircle, Search, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-// Sample data for demonstration
-const SAMPLE_USERS = [
-  {
-    itsId: "12345678",
-    name: "Ahmed Ali",
-    thaaliType: "Medium",
-    phone: "1234567890"
-  },
-  {
-    itsId: "23456789",
-    name: "Fatima Hussain",
-    thaaliType: "Small",
-    phone: "2345678901"
-  },
-  {
-    itsId: "34567890",
-    name: "Mohammed Khan",
-    thaaliType: "Large",
-    phone: "3456789012"
-  },
-  {
-    itsId: "45678901",
-    name: "Aisha Qadir",
-    thaaliType: "Medium",
-    phone: "4567890123"
-  },
-  {
-    itsId: "56789012",
-    name: "Yusuf Ibrahim",
-    thaaliType: "Small",
-    phone: "5678901234"
-  }
-];
+type Profile = {
+  id: string;
+  its_id: string;
+  name: string;
+  thaali_type: string;
+  phone: string | null;
+};
 
 const UserManagement = () => {
-  const [users, setUsers] = useState(SAMPLE_USERS);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [isConfirmDeleteDialogOpen, setIsConfirmDeleteDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   const [newUser, setNewUser] = useState({
-    itsId: "",
+    its_id: "",
     name: "",
-    thaaliType: "Small",
+    thaali_type: "Small",
     phone: ""
   });
   
-  const [editUser, setEditUser] = useState({
-    itsId: "",
+  const [editUser, setEditUser] = useState<Profile>({
+    id: "",
+    its_id: "",
     name: "",
-    thaaliType: "Small",
+    thaali_type: "Small",
     phone: ""
   });
   
   const [deleteUserId, setDeleteUserId] = useState("");
   
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+  
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('name');
+      
+      if (error) {
+        throw error;
+      }
+      
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error("Failed to load users");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.itsId.includes(searchTerm)
+    user.its_id.includes(searchTerm)
   );
   
-  const handleAddUser = () => {
-    // Validate ITS ID format (8 digits)
-    if (!/^\d{8}$/.test(newUser.itsId)) {
-      toast.error("ITS ID must be an 8-digit number");
-      return;
+  const handleAddUser = async () => {
+    try {
+      // Validate ITS ID format (8 digits)
+      if (!/^\d{8}$/.test(newUser.its_id)) {
+        toast.error("ITS ID must be an 8-digit number");
+        return;
+      }
+      
+      // Validate phone number (simple validation)
+      if (!/^\d{10}$/.test(newUser.phone)) {
+        toast.error("Please enter a valid 10-digit phone number");
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .insert([{
+          its_id: newUser.its_id,
+          name: newUser.name,
+          thaali_type: newUser.thaali_type,
+          phone: newUser.phone,
+          role: 'user' // Default role
+        }]);
+      
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          toast.error("A user with this ITS ID already exists");
+        } else {
+          throw error;
+        }
+        return;
+      }
+      
+      toast.success("User added successfully");
+      setIsAddUserDialogOpen(false);
+      setNewUser({ its_id: "", name: "", thaali_type: "Small", phone: "" });
+      fetchUsers();
+      
+    } catch (error) {
+      console.error('Error adding user:', error);
+      toast.error("Failed to add user");
     }
-    
-    // Check if ITS ID already exists
-    if (users.some(user => user.itsId === newUser.itsId)) {
-      toast.error("A user with this ITS ID already exists");
-      return;
-    }
-    
-    // Validate phone number (simple validation)
-    if (!/^\d{10}$/.test(newUser.phone)) {
-      toast.error("Please enter a valid 10-digit phone number");
-      return;
-    }
-    
-    setUsers([...users, { ...newUser }]);
-    setNewUser({ itsId: "", name: "", thaaliType: "Small", phone: "" });
-    setIsAddUserDialogOpen(false);
-    toast.success("User added successfully");
   };
   
-  const handleEditUser = () => {
-    // Validate phone number (simple validation)
-    if (!/^\d{10}$/.test(editUser.phone)) {
-      toast.error("Please enter a valid 10-digit phone number");
-      return;
+  const handleEditUser = async () => {
+    try {
+      // Validate phone number (simple validation)
+      if (!/^\d{10}$/.test(editUser.phone || '')) {
+        toast.error("Please enter a valid 10-digit phone number");
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editUser.name,
+          thaali_type: editUser.thaali_type,
+          phone: editUser.phone,
+        })
+        .eq('id', editUser.id);
+      
+      if (error) throw error;
+      
+      toast.success("User updated successfully");
+      setIsEditUserDialogOpen(false);
+      fetchUsers();
+      
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error("Failed to update user");
     }
-    
-    const updatedUsers = users.map(user => 
-      user.itsId === editUser.itsId ? { ...editUser } : user
-    );
-    
-    setUsers(updatedUsers);
-    setIsEditUserDialogOpen(false);
-    toast.success("User updated successfully");
   };
   
-  const handleDeleteUser = () => {
-    const updatedUsers = users.filter(user => user.itsId !== deleteUserId);
-    setUsers(updatedUsers);
-    setIsConfirmDeleteDialogOpen(false);
-    toast.success("User deleted successfully");
+  const handleDeleteUser = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', deleteUserId);
+      
+      if (error) throw error;
+      
+      toast.success("User deleted successfully");
+      setIsConfirmDeleteDialogOpen(false);
+      fetchUsers();
+      
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error("Failed to delete user");
+    }
   };
   
   return (
@@ -179,8 +223,8 @@ const UserManagement = () => {
                     <Input
                       id="itsId"
                       placeholder="Enter 8-digit ITS ID"
-                      value={newUser.itsId}
-                      onChange={(e) => setNewUser({ ...newUser, itsId: e.target.value })}
+                      value={newUser.its_id}
+                      onChange={(e) => setNewUser({ ...newUser, its_id: e.target.value })}
                       className="thaali-input"
                     />
                   </div>
@@ -199,8 +243,8 @@ const UserManagement = () => {
                   <div className="grid gap-2">
                     <Label htmlFor="thaaliType">Thaali Type</Label>
                     <Select
-                      value={newUser.thaaliType}
-                      onValueChange={(value) => setNewUser({ ...newUser, thaaliType: value })}
+                      value={newUser.thaali_type}
+                      onValueChange={(value) => setNewUser({ ...newUser, thaali_type: value })}
                     >
                       <SelectTrigger id="thaaliType" className="thaali-input">
                         <SelectValue placeholder="Select thaali type" />
@@ -264,46 +308,56 @@ const UserManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.itsId}>
-                    <TableCell className="font-medium">{user.itsId}</TableCell>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.thaaliType}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-thaali-green hover:text-thaali-green-dark hover:bg-thaali-green/10"
-                          onClick={() => {
-                            setEditUser({ ...user });
-                            setIsEditUserDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
-                          onClick={() => {
-                            setDeleteUserId(user.itsId);
-                            setIsConfirmDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredUsers.length === 0 && (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No users found
+                      Loading users...
                     </TableCell>
                   </TableRow>
+                ) : (
+                  <>
+                    {filteredUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.its_id}</TableCell>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.thaali_type}</TableCell>
+                        <TableCell>{user.phone}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-thaali-green hover:text-thaali-green-dark hover:bg-thaali-green/10"
+                              onClick={() => {
+                                setEditUser({ ...user });
+                                setIsEditUserDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
+                              onClick={() => {
+                                setDeleteUserId(user.id);
+                                setIsConfirmDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredUsers.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                          No users found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 )}
               </TableBody>
             </Table>
@@ -325,7 +379,7 @@ const UserManagement = () => {
               <Label htmlFor="editItsId">ITS ID</Label>
               <Input
                 id="editItsId"
-                value={editUser.itsId}
+                value={editUser.its_id}
                 disabled
                 className="bg-muted"
               />
@@ -344,8 +398,8 @@ const UserManagement = () => {
             <div className="grid gap-2">
               <Label htmlFor="editThaaliType">Thaali Type</Label>
               <Select
-                value={editUser.thaaliType}
-                onValueChange={(value) => setEditUser({ ...editUser, thaaliType: value })}
+                value={editUser.thaali_type}
+                onValueChange={(value) => setEditUser({ ...editUser, thaali_type: value })}
               >
                 <SelectTrigger id="editThaaliType" className="thaali-input">
                   <SelectValue placeholder="Select thaali type" />

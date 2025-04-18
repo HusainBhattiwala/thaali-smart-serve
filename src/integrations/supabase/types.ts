@@ -9,7 +9,101 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      daily_menu: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          items: Json
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          items?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          items?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          its_id: string
+          name: string
+          phone: string | null
+          role: string
+          thaali_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          its_id: string
+          name: string
+          phone?: string | null
+          role?: string
+          thaali_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          its_id?: string
+          name?: string
+          phone?: string | null
+          role?: string
+          thaali_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      thaali_requests: {
+        Row: {
+          current_type: string
+          id: string
+          request_date: string | null
+          requested_type: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          current_type: string
+          id?: string
+          request_date?: string | null
+          requested_type: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          current_type?: string
+          id?: string
+          request_date?: string | null
+          requested_type?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "thaali_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
