@@ -14,6 +14,7 @@ interface LoginFormProps {
 
 type UserRole = 'admin' | 'user';
 
+// Explicitly define the shape of user data to avoid recursive type issues
 interface UserData {
   itsId: string;
   role: UserRole;
