@@ -12,6 +12,7 @@ interface LoginFormProps {
   onSuccess?: (isAdmin: boolean) => void;
 }
 
+// Define UserRole as a string literal type
 type UserRole = 'admin' | 'user';
 
 // Explicitly define the shape of user data to avoid recursive type issues
@@ -50,6 +51,7 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
+      // Create a properly typed user data object
       const userData: UserData = {
         itsId: userItsId,
         role: data.role as UserRole,
@@ -85,6 +87,7 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
+      // Create a properly typed user data object
       const userData: UserData = {
         itsId: data.its_id,
         role: data.role as UserRole,
