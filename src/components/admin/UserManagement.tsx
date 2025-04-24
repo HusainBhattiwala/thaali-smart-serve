@@ -114,10 +114,14 @@ const UserManagement = () => {
         return;
       }
       
-      // Fixed: Pass a single object instead of an array
+      // Generate a UUID for the new user
+      const newId = crypto.randomUUID();
+      
+      // Fixed: Pass the required id field
       const { error } = await supabase
         .from('profiles')
         .insert({
+          id: newId,
           its_id: newUser.its_id,
           name: newUser.name,
           thaali_type: newUser.thaali_type,
