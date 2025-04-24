@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -44,6 +45,7 @@ type Profile = {
   name: string;
   thaali_type: string;
   phone: string | null;
+  role: string;
 };
 
 const UserManagement = () => {
@@ -58,7 +60,8 @@ const UserManagement = () => {
     its_id: "",
     name: "",
     thaali_type: "Small",
-    phone: ""
+    phone: "",
+    role: "user"
   });
   
   const [editUser, setEditUser] = useState<Profile>({
@@ -66,7 +69,8 @@ const UserManagement = () => {
     its_id: "",
     name: "",
     thaali_type: "Small",
-    phone: ""
+    phone: "",
+    role: "user"
   });
   
   const [deleteUserId, setDeleteUserId] = useState("");
@@ -82,9 +86,7 @@ const UserManagement = () => {
         .select('*')
         .order('name');
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
       setUsers(data || []);
     } catch (error) {
@@ -117,7 +119,6 @@ const UserManagement = () => {
       // Generate a UUID for the new user
       const newId = crypto.randomUUID();
       
-      // Fixed: Pass the required id field
       const { error } = await supabase
         .from('profiles')
         .insert({
@@ -126,7 +127,7 @@ const UserManagement = () => {
           name: newUser.name,
           thaali_type: newUser.thaali_type,
           phone: newUser.phone,
-          role: 'user' // Default role
+          role: newUser.role
         });
       
       if (error) {
@@ -140,7 +141,7 @@ const UserManagement = () => {
       
       toast.success("User added successfully");
       setIsAddUserDialogOpen(false);
-      setNewUser({ its_id: "", name: "", thaali_type: "Small", phone: "" });
+      setNewUser({ its_id: "", name: "", thaali_type: "Small", phone: "", role: "user" });
       fetchUsers();
       
     } catch (error) {

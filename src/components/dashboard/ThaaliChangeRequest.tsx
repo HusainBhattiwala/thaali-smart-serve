@@ -22,6 +22,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type RequestType = "none" | "half" | "extra";
 
@@ -30,9 +31,22 @@ const ThaaliChangeRequest = () => {
   const [requestType, setRequestType] = useState<RequestType>("none");
   const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("User not found");
+      return;
+    }
     
     if (!date) {
       toast.error("Please select a date for your request");
@@ -61,21 +75,40 @@ const ThaaliChangeRequest = () => {
     
     setIsSubmitting(true);
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('thaali_requests')
+        .insert({
+          user_id: user.id,
+          request_date: date.toISOString(),
+          current_type: user.thaaliType,
+          requested_type: requestType === 'none' ? 'No Thaali' 
+            : requestType === 'half' ? 'Half Thaali' 
+            : 'Extra Thaali',
+          status: 'pending',
+          reason: reason || null
+        });
+
+      if (error) throw error;
+      
       toast.success("Your Thaali change request has been submitted successfully");
+      
       // Reset form
       setDate(undefined);
       setRequestType("none");
       setReason("");
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      toast.error("Failed to submit request");
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
   
   return (
     <Card className="thaali-card animate-fade-in">
       <CardHeader className="bg-thaali-green/10">
-        <CardTitle className="text-lg">Thaali Change Request</CardTitle>
+        <CardTitle className="text-lg">Create Thaali Change Request</CardTitle>
         <CardDescription>
           Submit your request before 10 PM for the next day
         </CardDescription>
@@ -147,7 +180,7 @@ const ThaaliChangeRequest = () => {
           <Button 
             type="submit" 
             className="w-full bg-thaali-green hover:bg-thaali-green-dark"
-            disabled={isSubmitting || !date || !requestType}
+            disabled={isSubmitting || !date}
           >
             {isSubmitting ? "Submitting..." : "Submit Request"}
           </Button>

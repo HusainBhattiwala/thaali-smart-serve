@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoginFormProps {
   onSuccess?: (isAdmin: boolean) => void;
@@ -13,8 +14,6 @@ interface LoginFormProps {
 
 const LoginForm = ({ onSuccess }: LoginFormProps) => {
   const [itsId, setItsId] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -30,39 +29,41 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
-      // In a real app, this would be an API call
-      // For demo purposes, we're using hardcoded credentials
-      setTimeout(() => {
-        // Admin credentials (for demo)
-        if (itsId === "12345678" && password === "admin") {
-          localStorage.setItem("user", JSON.stringify({ 
-            itsId, 
-            name: "Admin User", 
-            role: "admin", 
-            thaaliType: "Medium"
-          }));
-          toast.success("Admin login successful");
-          navigate("/admin");
-          if (onSuccess) onSuccess(true);
-        } 
-        // Regular user credentials (for demo)
-        else if (itsId === "87654321" && password === "user") {
-          localStorage.setItem("user", JSON.stringify({ 
-            itsId, 
-            name: "Demo User", 
-            role: "user", 
-            thaaliType: "Small"
-          }));
-          toast.success("Login successful");
-          navigate("/dashboard");
-          if (onSuccess) onSuccess(false);
-        } else {
-          toast.error("Invalid ITS ID or password");
-        }
+      // Check if user exists in profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('its_id', itsId)
+        .single();
+
+      if (error || !data) {
+        toast.error("User not found");
         setIsLoading(false);
-      }, 1000);
+        return;
+      }
+
+      // Store user data in local storage
+      localStorage.setItem("user", JSON.stringify({ 
+        itsId: data.its_id, 
+        name: data.name, 
+        role: data.role, 
+        thaaliType: data.thaali_type
+      }));
+
+      // Navigate based on user role
+      if (data.role === 'admin') {
+        toast.success("Admin login successful");
+        navigate("/admin");
+        if (onSuccess) onSuccess(true);
+      } else {
+        toast.success("Login successful");
+        navigate("/dashboard");
+        if (onSuccess) onSuccess(false);
+      }
+      
     } catch (error) {
       toast.error("Login failed");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -79,28 +80,6 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
           className="thaali-input"
           required
         />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="thaali-input pr-10"
-            required
-          />
-          <button
-            type="button"
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
       </div>
       
       <Button
