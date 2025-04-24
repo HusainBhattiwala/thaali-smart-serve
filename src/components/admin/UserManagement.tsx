@@ -114,15 +114,16 @@ const UserManagement = () => {
         return;
       }
       
+      // Fixed: Pass a single object instead of an array
       const { error } = await supabase
         .from('profiles')
-        .insert([{
+        .insert({
           its_id: newUser.its_id,
           name: newUser.name,
           thaali_type: newUser.thaali_type,
           phone: newUser.phone,
           role: 'user' // Default role
-        }]);
+        });
       
       if (error) {
         if (error.code === '23505') { // Unique violation
