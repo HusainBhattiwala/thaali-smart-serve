@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,18 +20,18 @@ interface UserData {
 }
 
 const LoginForm = ({ onSuccess }: LoginFormProps) => {
-  const [itsId, setItsId] = useState("");
+  const [userItsId, setUserItsId] = useState("");
+  const [adminItsId, setAdminItsId] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
-  const handleCheckUser = async (e: React.FormEvent) => {
+  const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      if (!/^\d{8}$/.test(itsId)) {
+      if (!/^\d{8}$/.test(userItsId)) {
         toast.error("ITS ID must be an 8-digit number");
         setIsLoading(false);
         return;
@@ -39,23 +40,17 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
-        .eq('its_id', itsId)
-        .single();
+        .eq('its_id', userItsId)
+        .maybeSingle();
 
-      if (error || !data) {
-        toast.error("User not found");
-        setIsLoading(false);
-        return;
-      }
-
-      if (data.role === 'admin') {
-        setIsAdmin(true);
+      if (error || !data || data.role === 'admin') {
+        toast.error("Invalid ITS ID or not a regular user");
         setIsLoading(false);
         return;
       }
 
       const userData: UserData = {
-        itsId: itsId,
+        itsId: userItsId,
         role: data.role as UserRole,
       };
       
@@ -79,12 +74,12 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('its_id', itsId)
+        .eq('its_id', adminItsId)
         .eq('password', password)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
-        toast.error("Invalid credentials");
+      if (error || !data || data.role !== 'admin') {
+        toast.error("Invalid admin credentials");
         setIsLoading(false);
         return;
       }
@@ -107,53 +102,73 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
   };
 
   return (
-    <form onSubmit={isAdmin ? handleAdminLogin : handleCheckUser} className="space-y-6 w-full max-w-sm">
-      <div className="space-y-2">
-        <Label htmlFor="itsId">ITS ID</Label>
-        <Input
-          id="itsId"
-          placeholder="Enter your 8-digit ITS ID"
-          value={itsId}
-          onChange={(e) => setItsId(e.target.value)}
-          className="thaali-input"
-          required
-        />
-      </div>
+    <Tabs defaultValue="user" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="user">User Login</TabsTrigger>
+        <TabsTrigger value="admin">Admin Login</TabsTrigger>
+      </TabsList>
       
-      {isAdmin && (
-        <div className="space-y-2">
-          <Label htmlFor="password">Admin Password</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter admin password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="thaali-input"
-            required
-          />
-        </div>
-      )}
+      <TabsContent value="user">
+        <form onSubmit={handleUserLogin} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="userItsId">ITS ID</Label>
+            <Input
+              id="userItsId"
+              placeholder="Enter your 8-digit ITS ID"
+              value={userItsId}
+              onChange={(e) => setUserItsId(e.target.value)}
+              className="thaali-input"
+              required
+            />
+          </div>
+          
+          <Button
+            type="submit"
+            className="w-full bg-thaali-green hover:bg-thaali-green-dark"
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
+          </Button>
+        </form>
+      </TabsContent>
       
-      <Button
-        type="submit"
-        className="w-full bg-thaali-green hover:bg-thaali-green-dark"
-        disabled={isLoading}
-      >
-        {isLoading ? "Logging in..." : isAdmin ? "Admin Login" : "Login"}
-      </Button>
-
-      {isAdmin && (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={() => setIsAdmin(false)}
-        >
-          Back to Regular Login
-        </Button>
-      )}
-    </form>
+      <TabsContent value="admin">
+        <form onSubmit={handleAdminLogin} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="adminItsId">Admin ITS ID</Label>
+            <Input
+              id="adminItsId"
+              placeholder="Enter admin ITS ID"
+              value={adminItsId}
+              onChange={(e) => setAdminItsId(e.target.value)}
+              className="thaali-input"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter admin password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="thaali-input"
+              required
+            />
+          </div>
+          
+          <Button
+            type="submit"
+            className="w-full bg-thaali-green hover:bg-thaali-green-dark"
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Admin Login"}
+          </Button>
+        </form>
+      </TabsContent>
+    </Tabs>
   );
 };
 
