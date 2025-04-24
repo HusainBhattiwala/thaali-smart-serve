@@ -5,11 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LoginFormProps {
   onSuccess?: (isAdmin: boolean) => void;
+}
+
+type UserRole = 'admin' | 'user';
+
+interface UserData {
+  itsId: string;
+  role: UserRole;
 }
 
 const LoginForm = ({ onSuccess }: LoginFormProps) => {
@@ -24,14 +30,12 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
     setIsLoading(true);
 
     try {
-      // Validate ITS ID format (8 digits)
       if (!/^\d{8}$/.test(itsId)) {
         toast.error("ITS ID must be an 8-digit number");
         setIsLoading(false);
         return;
       }
 
-      // Check if user exists in profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
@@ -44,20 +48,18 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
-      // If user is admin, show password field
       if (data.role === 'admin') {
         setIsAdmin(true);
         setIsLoading(false);
         return;
       }
 
-      // For regular users, log them in directly
-      const userData = {
+      const userData: UserData = {
         itsId: itsId,
-        role: data.role,
+        role: data.role as UserRole,
       };
-      localStorage.setItem("user", JSON.stringify(userData));
       
+      localStorage.setItem("user", JSON.stringify(userData));
       toast.success("Login successful");
       if (onSuccess) onSuccess(false);
       navigate("/dashboard");
@@ -74,12 +76,11 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
     setIsLoading(true);
 
     try {
-      // For admin, verify password
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('its_id', itsId)
-        .eq('password', password) // Note: In a real app, use proper password hashing
+        .eq('password', password)
         .single();
 
       if (error || !data) {
@@ -88,11 +89,12 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify({ 
-        itsId: data.its_id, 
-        role: data.role 
-      }));
+      const userData: UserData = {
+        itsId: data.its_id,
+        role: data.role as UserRole,
+      };
 
+      localStorage.setItem("user", JSON.stringify(userData));
       toast.success("Admin login successful");
       if (onSuccess) onSuccess(true);
       navigate("/admin");
