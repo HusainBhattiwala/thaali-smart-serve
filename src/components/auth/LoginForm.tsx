@@ -12,10 +12,10 @@ interface LoginFormProps {
   onSuccess?: (isAdmin: boolean) => void;
 }
 
-// Define UserRole as a simple string literal type
+// Define UserRole type without allowing extension
 type UserRole = 'admin' | 'user';
 
-// Define UserData interface with primitive types only
+// Define UserData with strictly primitive types to avoid circular references
 interface UserData {
   itsId: string;
   role: UserRole;
@@ -51,7 +51,7 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
-      // Create a simple user data object with primitive types
+      // Create a strictly-typed UserData object with only primitive types
       const userData: UserData = {
         itsId: userItsId,
         role: data.role as UserRole,
@@ -87,7 +87,7 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
-      // Create a simple user data object with primitive types
+      // Create a strictly-typed UserData object with only primitive types
       const userData: UserData = {
         itsId: data.its_id,
         role: data.role as UserRole,
