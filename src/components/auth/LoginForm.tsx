@@ -15,6 +15,12 @@ interface LoginFormProps {
 // Define UserRole type without allowing extension
 type UserRole = 'admin' | 'user';
 
+// Define simplified ProfileData to avoid deep type instantiation
+interface ProfileData {
+  its_id: string;
+  role: string;
+}
+
 // Define UserData with strictly primitive types to avoid circular references
 interface UserData {
   itsId: string;
@@ -39,11 +45,12 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
         return;
       }
 
+      // Explicitly type the response data to avoid deep type instantiation
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('its_id', userItsId)
-        .maybeSingle();
+        .maybeSingle() as { data: ProfileData | null, error: Error | null };
 
       if (error || !data || data.role === 'admin') {
         toast.error("Invalid ITS ID or not a regular user");
@@ -74,12 +81,13 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
     setIsLoading(true);
 
     try {
+      // Explicitly type the response data to avoid deep type instantiation
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('its_id, role')
         .eq('its_id', adminItsId)
         .eq('password', password)
-        .maybeSingle();
+        .maybeSingle() as { data: ProfileData | null, error: Error | null };
 
       if (error || !data || data.role !== 'admin') {
         toast.error("Invalid admin credentials");
