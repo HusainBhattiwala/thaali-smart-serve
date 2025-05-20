@@ -18,6 +18,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import MenuManagementPage from "./pages/admin/MenuManagementPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import UserManagementPage from "./pages/admin/UserManagementPage";
+import FeedbackReportPage from "./pages/admin/FeedbackReportPage";
 
 // Layouts
 import UserLayout from "./components/layout/UserLayout";
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="menu" element={<MenuManagementPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="users" element={<UserManagementPage />} />
+            <Route path="feedback" element={<FeedbackReportPage />} />
           </Route>
           
           {/* 404 Route */}

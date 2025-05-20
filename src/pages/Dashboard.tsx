@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import ThaaliInfo from "@/components/dashboard/ThaaliInfo";
 import MenuDisplay from "@/components/dashboard/MenuDisplay";
 import ThaaliChangeRequest from "@/components/dashboard/ThaaliChangeRequest";
+import ThaaliRatingForm from "@/components/dashboard/ThaaliRatingForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -31,7 +33,18 @@ const Dashboard = () => {
         </div>
         
         <div>
-          <ThaaliChangeRequest />
+          <Tabs defaultValue="request" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="request">Change Request</TabsTrigger>
+              <TabsTrigger value="feedback">Rate Thaali</TabsTrigger>
+            </TabsList>
+            <TabsContent value="request">
+              <ThaaliChangeRequest />
+            </TabsContent>
+            <TabsContent value="feedback">
+              <ThaaliRatingForm />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
